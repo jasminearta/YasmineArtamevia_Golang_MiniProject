@@ -3,6 +3,7 @@ package main
 import (
 	"jessie_miniproject/config"
 	"jessie_miniproject/controllers"
+	middlewares "jessie_miniproject/middlewares"
 	"log"
 	"os"
 
@@ -23,6 +24,18 @@ func main() {
 	c.POST("/api/register", controllers.Registrasi)
 	c.POST("/api/login", controllers.Login)
 	c.GET("/api/logout", controllers.Logout)
+
+	// Protected routes group
+	eAuth := c.Group("/api/products")
+
+	// Middleware for JWT authentication
+	eAuth.Use(middlewares.JWTMiddleware)
+
+	eAuth.POST("", controllers.AddProduct)       // Add new eAuth
+	eAuth.GET("", controllers.GetAllProducts)    // Get all products
+	eAuth.GET("/:id", controllers.GetByID)       // Update eAuth by ID
+	eAuth.PUT("/:id", controllers.UpdateProduct) // Update eAuth by ID
+	eAuth.DELETE("/:id", controllers.DeleteProduct)
 
 	// Start server
 	c.Start(":8080")
