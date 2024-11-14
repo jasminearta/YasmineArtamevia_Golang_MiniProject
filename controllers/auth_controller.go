@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"jessie_miniproject/config"
-	"jessie_miniproject/model"
 	"jessie_miniproject/models"
 	"net/http"
 	"os"
@@ -92,7 +91,7 @@ func CheckPasswordHash(password, hash string) bool {
 
 // generate token
 func GenerateJWT(email string, id int) (string, error) {
-	claims := &model.JwtCustomClaims{
+	claims := &models.JwtCustomClaims{
 		UserID: id,
 		Email:  email,
 		RegisteredClaims: jwt.RegisteredClaims{

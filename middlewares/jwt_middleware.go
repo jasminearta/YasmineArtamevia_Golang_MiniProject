@@ -1,7 +1,7 @@
 package midlewares
 
 import (
-	"jessie_miniproject/model"
+	"jessie_miniproject/models"
 	"net/http"
 	"os"
 
@@ -18,7 +18,7 @@ func JWTMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		tokenString := h.Value
-		claims := &model.JwtCustomClaims{}
+		claims := &models.JwtCustomClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("JWT_SECRET")), nil
 		})

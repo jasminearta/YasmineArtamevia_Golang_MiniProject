@@ -9,6 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// ConfigDB holds database configuration values.
 type ConfigDB struct {
 	Host     string
 	User     string
@@ -19,7 +20,7 @@ type ConfigDB struct {
 
 var DB *gorm.DB
 
-func InitDB() {
+func InitDB() error {
 	configDB := ConfigDB{
 		Host:     os.Getenv("DATABASE_HOST"),
 		User:     os.Getenv("DATABASE_USER"),
@@ -28,7 +29,7 @@ func InitDB() {
 		Name:     os.Getenv("DATABASE_NAME"),
 	}
 
-	dsn := fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4&parseTime=True&loc=Local",
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		configDB.User,
 		configDB.Password,
 		configDB.Host,
@@ -37,13 +38,14 @@ func InitDB() {
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		panic("Failed to connect to database!")
+		return fmt.Errorf("failed to connect to the database: %w", err)
 	}
 
-	err = db.AutoMigrate(&models.User{}, &models.ProductLog{})
-	if err != nil {
-		panic("Failed to migrate database!")
+	// Auto-migrate models
+	if err := db.AutoMigrate(&models.ProductLog{}, &models.User{}); err != nil {
+		return fmt.Errorf("failed to migrate database models: %w", err)
 	}
 
 	DB = db
+	return nil
 }

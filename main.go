@@ -5,7 +5,6 @@ import (
 	"jessie_miniproject/controllers"
 	middlewares "jessie_miniproject/middlewares"
 	"log"
-	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -13,10 +12,15 @@ import (
 )
 
 func main() {
+	// Memuat file .env
 	loadEnv()
 
-	config.InitDB()
+	// Inisialisasi database
+	if err := config.InitDB(); err != nil {
+		log.Fatalf("Error initializing database: %v", err)
+	}
 
+	// Inisialisasi Echo
 	c := echo.New()
 	c.Use(middleware.Logger())
 
@@ -28,25 +32,22 @@ func main() {
 	// Protected routes group
 	eAuth := c.Group("/api/products")
 
-	// Middleware for JWT authentication
+	// Middleware untuk autentikasi JWT
 	eAuth.Use(middlewares.JWTMiddleware)
 
-	eAuth.POST("", controllers.AddProduct)       // Add new eAuth
+	// routes produk
+	eAuth.POST("", controllers.AddProduct)       // Add new product
 	eAuth.GET("", controllers.GetAllProducts)    // Get all products
-	eAuth.GET("/:id", controllers.GetByID)       // Update eAuth by ID
-	eAuth.PUT("/:id", controllers.UpdateProduct) // Update eAuth by ID
+	eAuth.GET("/:id", controllers.GetByID)       // Get product by ID
+	eAuth.PUT("/:id", controllers.UpdateProduct) // Update product by ID
 	eAuth.DELETE("/:id", controllers.DeleteProduct)
 
-	// Start server
+	// Mulai server
 	c.Start(":8080")
 }
 
 func loadEnv() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
-		panic("failed load env")
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Gagal memuat file .env")
 	}
-	// Cek apakah JWT_SECRET sudah termuat
-	log.Println("JWT_SECRET:", os.Getenv("JWT_SECRET"))
 }
