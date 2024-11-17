@@ -6,14 +6,12 @@ import (
 	middlewares "jessie_miniproject/middlewares"
 	"log"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 	// Memuat file .env
-	loadEnv()
 
 	// Inisialisasi database
 	if err := config.InitDB(); err != nil {
@@ -44,10 +42,4 @@ func main() {
 
 	// Mulai server
 	c.Start(":8080")
-}
-
-func loadEnv() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Gagal memuat file .env")
-	}
 }
