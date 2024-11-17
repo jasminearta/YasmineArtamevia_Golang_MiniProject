@@ -59,6 +59,7 @@ func GetAllProducts(c echo.Context) error {
 }
 
 func GetByID(c echo.Context) error {
+
 	var product models.ProductLog
 
 	// Konversi `id` dari string ke uint
