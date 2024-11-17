@@ -74,7 +74,7 @@ jobs:
         run: |
           ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
             # Stop and remove the current container if running
-            CONTAINER_ID=\$(sudo docker ps -q --filter "name=mini_golang_airquality")
+            CONTAINER_ID=\$(sudo docker ps -q --filter "name=jessie_miniproject")
             if [ -n "\$CONTAINER_ID" ]; then
               sudo docker stop \$CONTAINER_ID
               sudo docker rm \$CONTAINER_ID
@@ -87,7 +87,7 @@ jobs:
             sudo docker pull $IMAGE_URI
 
             # Run the new container
-            sudo docker run -d --name mini_golang_airquality -p 8000:8000 $IMAGE_URI
+            sudo docker run -d --name jessie_miniproject -p 8080:8080 $IMAGE_URI
           EOF
 
       # Clean up PEM file
