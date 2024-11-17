@@ -1,4 +1,4 @@
-name: workflows
+name: jessie_project
 
 on:
   push:
