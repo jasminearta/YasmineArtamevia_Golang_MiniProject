@@ -1,4 +1,4 @@
-name: jasmine_projectflow
+name: mini_project_jasmine
 
 on:
   push:
@@ -57,7 +57,7 @@ jobs:
           ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
             # Stop and remove the current container if running
             CONTAINER_NAME="jessie_miniproject"
-            RUNNING_CONTAINER_ID=\$(sudo docker ps -q --filter "name=\$CONTAINER_NAME")
+            RUNNING_CONTAINER_ID=$(sudo docker ps -q --filter "name=\$CONTAINER_NAME")
             if [ -n "\$RUNNING_CONTAINER_ID" ]; then
               echo "Stopping and removing running container..."
               sudo docker stop \$RUNNING_CONTAINER_ID
@@ -65,24 +65,31 @@ jobs:
             fi
 
             # Remove stopped containers with the same name
-            STOPPED_CONTAINER_ID=\$(sudo docker ps -a -q --filter "name=\$CONTAINER_NAME")
+            STOPPED_CONTAINER_ID=$(sudo docker ps -a -q --filter "name=\$CONTAINER_NAME")
             if [ -n "\$STOPPED_CONTAINER_ID" ]; then
               echo "Removing stopped container..."
               sudo docker rm \$STOPPED_CONTAINER_ID
             fi
 
             # Remove containers using the same image
-            IMAGE_CONTAINER_IDS=\$(sudo docker ps -a --filter "ancestor=$IMAGE_URI" -q)
+            IMAGE_CONTAINER_IDS=$(sudo docker ps -a --filter "ancestor=$IMAGE_URI" -q)
             if [ -n "\$IMAGE_CONTAINER_IDS" ]; then
               echo "Removing containers using the same image..."
               echo \$IMAGE_CONTAINER_IDS | xargs -r sudo docker rm
             fi
 
             # Remove dangling images to free up space
-            DANGLING_IMAGE_IDS=\$(sudo docker images -f "dangling=true" -q)
+            DANGLING_IMAGE_IDS=$(sudo docker images -f "dangling=true" -q)
             if [ -n "\$DANGLING_IMAGE_IDS" ]; then
               echo "Removing dangling images..."
               echo \$DANGLING_IMAGE_IDS | xargs -r sudo docker rmi
+            fi
+
+            # Check and kill process using port 8080
+            RUNNING_PROCESS=$(sudo lsof -t -i:8080)
+            if [ -n "\$RUNNING_PROCESS" ]; then
+              echo "Port 8080 is in use by process \$RUNNING_PROCESS. Killing it..."
+              sudo kill -9 \$RUNNING_PROCESS
             fi
 
             # Pull the latest image from Docker Hub
