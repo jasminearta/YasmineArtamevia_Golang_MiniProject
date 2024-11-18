@@ -97,7 +97,7 @@ func TestGetByID_Success(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetParamNames("id")
-	c.SetParamValues("2")
+	c.SetParamValues("1")
 
 	// Memanggil controller dengan db mock
 	err := controllers.GetByID(c)
