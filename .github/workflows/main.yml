@@ -1,106 +1,74 @@
-name: mini_project_jasmine
+name: ci/cd_miniproject
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
 jobs:
-  build-and-push-docker:
-    runs-on: ubuntu-latest
-    steps:
-      # Checkout the code
-      - name: Checkout the code
-        uses: actions/checkout@v2
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: checkout the code
+              uses: actions/checkout@v2
+            - name: setup go
+              uses: actions/setup-go@v3
+              with:
+                go-version: '1.21'
+            - name: run test
+              run: |
+                go test -v ./...
 
-      # Create .env file from secret
-      - name: Create .env file
-        run: echo "${{ secrets.ENV }}" > .env
+    build-and-push-docker:
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - name: checkout the code
+              uses: actions/checkout@v2
+            - name: create env file
+              run: |
+                echo "${{secrets.ENV}}" >> .env
+            - name: build docker
+              run: docker build -t jasminearta/miniproject:1.0.0 .
+            - name: docker hub login
+              uses: docker/login-action@v1
+              with: 
+                username: ${{secrets.DOCKER_USER}}
+                password: ${{secrets.DOCKER_TOKEN}}
+            - name: push image
+              run: docker push jasminearta/miniproject:1.0.0
+    deploy:
+      needs: build-and-push-docker
+      runs-on: ubuntu-latest
+      env:
+        IMAGE_URI: 'jasminearta/miniproject:1.0.0'
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        EC2_USER: ${{ secrets.EC2_USER }}
 
-      # Login to Docker Hub
-      - name: Docker Hub Login
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USER }}
-          password: ${{ secrets.DOCKER_TOKEN }}
+      steps:
+        - name: Check out the code
+          uses: actions/checkout@v2
 
-      # Build Docker image
-      - name: Build Docker Image
-        run: docker build -t ${{ secrets.DOCKER_USER }}/miniproject:1.0.0 .
+        - name: Create PEM file from secret
+          run: |
+            echo "${{ secrets.EC2_PEM }}" > ec2-key.pem
+            chmod 600 ec2-key.pem  # Set appropriate permissions
 
-      # Push Docker image to Docker Hub
-      - name: Push Docker Image
-        run: docker push ${{ secrets.DOCKER_USER }}/miniproject:1.0.0
+        - name: Deploy to EC2
+          run: |
+            ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
+              # Stop the current container if running
+              sudo docker ps -q --filter "name=my-container" | grep -q . && sudo docker stop my-container || true
+              sudo docker rm my-container || true
 
-  deploy-to-ec2:
-    needs: build-and-push-docker
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_URI: '${{ secrets.DOCKER_USER }}/miniproject:1.0.0'
-      EC2_HOST: ${{ secrets.EC2_HOST }}
-      EC2_USER: ${{ secrets.EC2_USER }}
+              # Pull the latest image from ECR
+              sudo docker pull $IMAGE_URI
 
-    steps:
-      # Checkout the code
-      - name: Checkout the Code
-        uses: actions/checkout@v2
+              # Run the new container
+              sudo docker run -d --name my-container -p 8080:8080 $IMAGE_URI
+            EOF
 
-      # Create PEM file from secret
-      - name: Create PEM File
-        run: |
-          echo "${{ secrets.EC2_PEM }}" > ec2-key.pem
-          chmod 600 ec2-key.pem
+        - name: Clean up PEM file
+          run: rm -f ec2-key.pem
 
-      # Deploy to EC2
-      - name: Deploy to EC2
-        run: |
-          ssh -i ec2-key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << EOF
-            # Stop and remove the current container if running
-            CONTAINER_NAME="miniproject"
-            RUNNING_CONTAINER_ID=$(sudo docker ps -q --filter "name=\$CONTAINER_NAME")
-            if [ -n "\$RUNNING_CONTAINER_ID" ]; then
-              echo "Stopping and removing running container..."
-              sudo docker stop \$RUNNING_CONTAINER_ID
-              sudo docker rm \$RUNNING_CONTAINER_ID
-            fi
 
-            # Remove stopped containers with the same name
-            STOPPED_CONTAINER_ID=$(sudo docker ps -a -q --filter "name=\$CONTAINER_NAME")
-            if [ -n "\$STOPPED_CONTAINER_ID" ]; then
-              echo "Removing stopped container..."
-              sudo docker rm \$STOPPED_CONTAINER_ID
-            fi
-
-            # Remove containers using the same image
-            IMAGE_CONTAINER_IDS=$(sudo docker ps -a --filter "ancestor=$IMAGE_URI" -q)
-            if [ -n "\$IMAGE_CONTAINER_IDS" ]; then
-              echo "Removing containers using the same image..."
-              echo \$IMAGE_CONTAINER_IDS | xargs -r sudo docker rm
-            fi
-
-            # Remove dangling images to free up space
-            DANGLING_IMAGE_IDS=$(sudo docker images -f "dangling=true" -q)
-            if [ -n "\$DANGLING_IMAGE_IDS" ]; then
-              echo "Removing dangling images..."
-              echo \$DANGLING_IMAGE_IDS | xargs -r sudo docker rmi
-            fi
-
-            # Check and kill process using port 8080
-            RUNNING_PROCESS=$(sudo lsof -t -i:8080)
-            if [ -n "\$RUNNING_PROCESS" ]; then
-              echo "Port 8080 is in use by process \$RUNNING_PROCESS. Killing it..."
-              sudo kill -9 \$RUNNING_PROCESS
-            fi
-
-            # Pull the latest image from Docker Hub
-            echo "Pulling the latest image..."
-            sudo docker pull $IMAGE_URI
-
-            # Run the new container
-            echo "Running new container..."
-            sudo docker run -d --name \$CONTAINER_NAME -p 8080:8080 $IMAGE_URI
-          EOF
-
-      # Clean up PEM file
-      - name: Clean up PEM File
-        run: rm -f ec2-key.pem
