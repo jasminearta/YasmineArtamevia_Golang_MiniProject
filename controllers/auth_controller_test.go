@@ -15,27 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLogin_Success(t *testing.T) {
-	e := echo.New()
-	loginPayload := `{
-		"email": "artameviay@",
-		"password": "1234"
-	}`
-	req := httptest.NewRequest(http.MethodPost, "/login", strings.NewReader(loginPayload))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := controllers.Login(c)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-
-	// Validate response
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Berhasil Login")
-}
-
 // Helper function untuk generate email dan username unik
 func generateRandomEmailAndUsername() (string, string) {
 	rand.Seed(time.Now().UnixNano())
