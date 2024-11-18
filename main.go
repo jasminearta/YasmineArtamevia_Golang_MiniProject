@@ -41,5 +41,6 @@ func main() {
 	eAuth.DELETE("/:id", controllers.DeleteProduct)
 
 	// Mulai server
-	c.Start(":8080")
+	c.Logger.Fatal(c.Start(":8000"))
+
 }
