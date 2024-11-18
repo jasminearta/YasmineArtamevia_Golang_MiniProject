@@ -20,6 +20,7 @@ func ResponseAI(ctx context.Context, question string) (string, error) {
 
 	modelAI := client.GenerativeModel("gemini-pro")
 	modelAI.SetTemperature(0)
+	modelAI.SetMaxOutputTokens(200)
 
 	resp, err := modelAI.GenerateContent(ctx, genai.Text(question))
 	if err != nil {
