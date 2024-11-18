@@ -1,4 +1,4 @@
-name: jasmineproject
+name: jasmine_projectflow
 
 on:
   push:
@@ -72,10 +72,18 @@ jobs:
             fi
 
             # Remove containers using the same image
-            sudo docker ps -a --filter "ancestor=$IMAGE_URI" -q | xargs -r sudo docker rm
+            IMAGE_CONTAINER_IDS=\$(sudo docker ps -a --filter "ancestor=$IMAGE_URI" -q)
+            if [ -n "\$IMAGE_CONTAINER_IDS" ]; then
+              echo "Removing containers using the same image..."
+              echo \$IMAGE_CONTAINER_IDS | xargs -r sudo docker rm
+            fi
 
             # Remove dangling images to free up space
-            sudo docker images -f "dangling=true" -q | xargs -r sudo docker rmi
+            DANGLING_IMAGE_IDS=\$(sudo docker images -f "dangling=true" -q)
+            if [ -n "\$DANGLING_IMAGE_IDS" ]; then
+              echo "Removing dangling images..."
+              echo \$DANGLING_IMAGE_IDS | xargs -r sudo docker rmi
+            fi
 
             # Pull the latest image from Docker Hub
             echo "Pulling the latest image..."
