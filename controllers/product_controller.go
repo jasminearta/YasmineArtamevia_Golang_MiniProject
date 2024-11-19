@@ -88,6 +88,17 @@ func UpdateProduct(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, utils.NewErrorResponse("Invalid request payload"))
 	}
 
+	query := helper.GenerateProductQuery(product.ProductName, product.Material, product.IsPlastic)
+
+	// Get AI response
+	ctx := context.Background()
+	aiResponse, err := helper.ResponseAI(ctx, query)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, utils.NewErrorResponse("Failed to generate product description"))
+	}
+
+	product.Rekomendasi = aiResponse
+
 	// Memperbarui produk di database
 	result := config.DB.Model(&models.ProductLog{}).Where("id = ?", id).Updates(product)
 	if result.Error != nil {
